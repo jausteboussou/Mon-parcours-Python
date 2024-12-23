@@ -1,0 +1,68 @@
+# Cuisson des Œufs
+
+Ce programme Python simule un assistant de cuisson pour cuire des œufs selon trois types de cuisson : œufs à la coque, œufs mollets, et œufs durs. Il guide l'utilisateur tout au long du processus et affiche le temps restant en temps réel.
+
+## Fonctionnalités
+
+- **Choix du type de cuisson** : L'utilisateur peut choisir entre trois options :
+  - **a** : Œufs à la coque (3 minutes)
+  - **b** : Œufs mollets (6 minutes)
+  - **c** : Œufs durs (9 minutes)
+- **Minuteur interactif** : Affiche un compte à rebours en temps réel pour la cuisson choisie.
+- **Indication visuelle** : Affiche des points en cours de cuisson pour indiquer que le programme fonctionne.
+
+## Fonctionnement
+
+### Étapes principales :
+1. Le programme affiche un menu avec les trois types de cuisson disponibles.
+2. L'utilisateur saisit son choix via la fonction `choix()`.
+3. La fonction `cuisson()` :
+   - Lance un minuteur pour le type de cuisson choisi.
+   - Affiche la durée restante en minutes et secondes.
+4. Une fois le minuteur terminé, le message **"Cuisson terminée"** s'affiche.
+
+## Exemple d'Utilisation
+
+### Code
+
+```python
+import time
+
+def choix():
+    choix = input("Votre choix :")
+    return choix
+
+def cuisson(type_de_cuisson):
+    NOMBRE_DE_FOIS = 10
+    print("Cuisson en cours", end="", flush=True)
+    for i in range(0, NOMBRE_DE_FOIS):
+        print(".", end="", flush=True)
+        time.sleep(1)
+
+    if type_de_cuisson == "a":
+        d = 180  # 3 minutes
+    elif type_de_cuisson == "b":
+        d = 360  # 6 minutes
+    elif type_de_cuisson == "c":
+        d = 540  # 9 minutes
+    else:
+        print("\nChoix invalide.")
+        return
+
+    while d != 0:
+        d -= 1
+        min = d // 60
+        sec = d % 60
+        print(f"\rDurée restante : {min:02d}:{sec:02d}", end="", flush=True)
+        time.sleep(1)
+
+print("Cuisson des œufs")
+print("-----------------")
+print("a) Œufs à la coque (3 min)")
+print("b) Œufs mollets (6 min)")
+print("c) Œufs durs (9 min)")
+
+# Entrer le choix de cuisson
+type_de_cuisson = choix()
+cuisson(type_de_cuisson)
+print("\nCuisson terminée")
