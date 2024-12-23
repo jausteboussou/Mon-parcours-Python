@@ -1,10 +1,37 @@
+# Turtle Staircase Drawing
+
+Ce programme Python utilise le module `turtle` pour dessiner une forme qui ressemble à un escalier. L'utilisateur peut définir la taille des marches et le nombre de marches via une saisie au clavier.
+
+## Fonctionnalités
+
+- Dessine une forme d'escalier personnalisée en utilisant une tortue graphique.
+- Permet à l'utilisateur de configurer :
+  - **La taille des marches** : Longueur d'une marche de l'escalier.
+  - **Le nombre de marches** : Combien de marches seront dessinées.
+
+## Fonctionnement
+
+Le programme repose sur la fonction `tortue`, qui :
+1. Sollicite l'utilisateur pour entrer deux informations :
+   - **Taille des marches** (`taille`) : Longueur de chaque segment de l'escalier.
+   - **Nombre de marches** (`nb_de_marche`) : Nombre total de segments à dessiner.
+2. Utilise une boucle `for` pour dessiner l'escalier :
+   - Avance et pivote pour créer chaque marche.
+3. Une fois l'escalier terminé, l'affichage graphique reste ouvert grâce à `turtle.done()`.
+
+## Exemple d'Utilisation
+
+### Code
+
+```python
 import turtle
 
 t = turtle.Turtle()
-def tortue(taille = 0,nb_de_marche = 0):
+
+def tortue(taille=0, nb_de_marche=0):
     taille = int(input("Quelle est la taille : "))
     nb_de_marche = int(input("Combien de marche : "))
-    for i in range(0,nb_de_marche):
+    for i in range(0, nb_de_marche):
         t.forward(taille)
         t.left(taille)
         t.forward(taille)
