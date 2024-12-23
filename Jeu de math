@@ -1,0 +1,93 @@
+# Quiz de Calcul Mathématique
+
+Ce programme Python génère un quiz de calcul mathématique interactif. Il pose 4 questions avec des opérations arithmétiques aléatoires, et l'utilisateur doit donner les réponses. Une note finale et un commentaire sur les performances sont affichés à la fin.
+
+## Fonctionnalités
+
+- **Génération de questions** : Les questions incluent des opérations aléatoires parmi addition (`+`), soustraction (`-`), multiplication (`*`), et division (`/`).
+- **Saisie utilisateur** : Le joueur entre le résultat de chaque opération.
+- **Évaluation des réponses** :
+  - Indique si chaque réponse est correcte ou incorrecte.
+  - Compte les points obtenus.
+- **Note et feedback** : Une note sur 4 est attribuée, et un message personnalisé est affiché selon les performances.
+
+## Fonctionnement
+
+### Étapes principales :
+1. Le programme génère deux nombres aléatoires pour chaque question.
+2. Une opération aléatoire est choisie parmi `+`, `-`, `*`, et `/`.
+3. L'utilisateur entre sa réponse au calcul affiché.
+4. Le programme évalue la réponse et affiche "Bonne réponse" ou "Mauvaise réponse".
+5. Après les 4 questions, une note sur 4 est calculée et un feedback est donné.
+
+### Gestion des erreurs :
+- Les questions de division affichent des résultats arrondis aux entiers pour éviter des problèmes liés aux nombres décimaux.
+
+## Exemple d'Utilisation
+
+### Code
+
+```python
+import random
+
+def question(NOMBRE1, NOMBRE2, i, operation):
+    print(f"Question N°{i} sur 4 : ")
+    print()
+    calcul = int((input(f"Calculez : {NOMBRE1} {operation} {NOMBRE2} = ")))
+    print()
+    if operation == "+":
+        if (NOMBRE1 + NOMBRE2) == calcul:
+            print("Bonne réponse")
+            return True
+        else:
+            print("Mauvaise réponse")
+            return False
+    elif operation == "*":
+        if (NOMBRE1 * NOMBRE2) == calcul:
+            print("Bonne réponse")
+            return True
+        else:
+            print("Mauvaise réponse")
+            return False
+    elif operation == "/":
+        if (NOMBRE1 // NOMBRE2) == calcul:  # Division entière pour simplifier
+            print("Bonne réponse")
+            return True
+        else:
+            print("Mauvaise réponse")
+            return False
+    elif operation == "-":
+        if (NOMBRE1 - NOMBRE2) == calcul:
+            print("Bonne réponse")
+            return True
+        else:
+            print("Mauvaise réponse")
+            return False
+
+def main():
+    i = 0
+    POINT = 0
+    while i < 4:
+        i += 1
+        NOMBRE1 = random.randint(1, 31)  # Génération aléatoire entre 1 et 31
+        NOMBRE2 = random.randint(1, 31)
+        operations = ["+", "-", "*", "/"]
+        operation = random.choice(operations)
+        if operation == "/" and NOMBRE2 == 0:  # Éviter la division par zéro
+            NOMBRE2 = 1
+        POINTS = question(NOMBRE1, NOMBRE2, i, operation)
+        print()
+        if POINTS:
+            POINT += 1
+    moyenne = int(i / 2)
+    print(f"Votre note est de {POINT}/4")
+    if POINT == 4:
+        print("Excellent")
+    elif POINT == 0:
+        print("Révisez vos maths!!!")
+    elif POINT > moyenne:
+        print("Pas mal.")
+    elif POINT < moyenne:
+        print("Peut mieux faire.")
+
+main()
