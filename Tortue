@@ -1,0 +1,15 @@
+import turtle
+
+t = turtle.Turtle()
+def tortue(taille = 0,nb_de_marche = 0):
+    taille = int(input("Quelle est la taille : "))
+    nb_de_marche = int(input("Combien de marche : "))
+    for i in range(0,nb_de_marche):
+        t.forward(taille)
+        t.left(taille)
+        t.forward(taille)
+        t.right(taille)
+    t.forward(taille)
+    turtle.done()
+
+tortue()
