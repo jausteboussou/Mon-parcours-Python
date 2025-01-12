@@ -1,0 +1,47 @@
+"""
+------     STRUCTURE DE LA DONNEE   ------
+question[]
+    titre
+    reponse 'r[]'  : r est un tableau avec plusieurs réponse
+    bonne reponse
+"""
+
+def affiche_score(score1,score2,score3):
+    calcul_score = score1 + score2 + score3
+    print(f"Votre score est de {calcul_score}/3")
+def verification_pose_question(bonne_reponse,reponse):
+    score = 0
+    if(bonne_reponse == reponse):
+        score+=1
+        print("Bonne réponse.")
+        print()
+        return score
+    else:
+        print("Mauvaise réponse.")
+        print()
+        return score
+
+def pose_question(question):
+    print(question["titre"])
+    r = question["r"]
+    nb_de_reponse = 0
+    for i in r:
+        nb_de_reponse = nb_de_reponse + 1
+        print(f"{nb_de_reponse} - {i}")
+    print()
+    bonne_reponse = question["bonne_reponse"]
+    for check_bonne_reponse in r:
+        if (check_bonne_reponse == bonne_reponse):
+            bonne_reponse = (r.index(bonne_reponse) + 1)
+            break
+    reponse_str = input(f"Votre réponse (entre 1 et {len(question["r"])}) : ")
+    reponse_int = int(reponse_str)
+    resultat = verification_pose_question(bonne_reponse,reponse_int)
+    return resultat
+    
+question1 = {"titre": "Quelle est la capitale de l'Allemagne ?","r": ('Berlin','Munich','Hambourg'),"bonne_reponse": "Berlin"}
+question2 = {"titre": "Quelle est la capitale de l'Espagne ?","r": ('Ponton','Brazza','Madrid'),"bonne_reponse": "Madrid"}
+question3 = {"titre": "Quelle est la capitale de la France ?","r": ('Bordeaux','Paris','Grenoble'),"bonne_reponse": "Paris"}
+
+
+affiche_score(pose_question(question1),pose_question(question2),pose_question(question3))
