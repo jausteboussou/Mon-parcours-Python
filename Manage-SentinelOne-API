@@ -1,0 +1,141 @@
+import requests
+import json
+import sys
+import pandas as pd
+# Base URL de SentinelOne
+baseurl = 'https://***.sentinelone.net'  # Remplacez par l'URL spécifique de votre entreprise
+
+def main():
+    api_token = input("Entrez votre API Token : ")
+
+    # Initialiser une session HTTP avec l'en-tête d'autorisation
+    session = requests.Session()
+    session.headers.update({'Authorization': f'APIToken {api_token}'})
+
+    try:
+        # Tester la connexion avec l'API Token
+        if test_connection(session):
+            print("Connexion réussie avec l'API Token.")        
+            launch_interface(session)
+        else:
+            print("Échec de connexion : vérifiez votre API Token.")
+    except Exception as e:
+        print(f"Erreur : {e}")
+    finally:
+        session.close()
+
+# création d'une fonction application
+
+def application_risk(session,application_name):
+    print("[LOG] Vérification de la connexion à SentinelOne...")
+    response = session.get(f"{baseurl}/web/api/v2.1/application-management/risks?application__contains={application_name}")
+    data = (dict(response.json())).values()
+    if response.status_code == 200:
+        # Création d'un DataFrame à partir du dictionnaire
+        df = pd.DataFrame(data)
+        # Sauvegarde au format Excel
+        df.to_excel("output.xlsx", index=False)
+        return "Données ont été exportés dans le fichier Excel : output.xlsx"
+    return "Erreur lors de la récupération des applications à risque des postes"
+
+def test_connection(session):
+    print("[LOG] Vérification de la connexion à SentinelOne...")
+    response = session.get(f"{baseurl}/web/api/v2.1/users")
+    return response.status_code == 200
+
+def launch_interface(session):
+    while True:
+        print("\nOptions :")
+        print("1: Lister tous les utilisateurs")
+        print("2: Obtenir les détails d'un utilisateur par ID")
+        print("3: Lister les agents")
+        print("4: Obtenir des informations sur un agent par IP")
+        print("5: Désinstaller SentinelOne d'un agent")
+        print("6: Entrer le nom de l'application obsolète : ")
+        print("7: Quitter")
+
+        choix = input("Choisissez une option : ")
+
+        if choix == '1':
+            print(list_users(session))
+        elif choix == '2':
+            user_id = input("Entrez l'ID de l'utilisateur : ")
+            print(get_user_details(session, user_id))
+        elif choix == '3':
+            print(list_agents(session))
+        elif choix == '4':
+            ip = input("Entrez l'adresse IP de l'agent : ")
+            print(get_agent_information(session, ip))
+        elif choix == '5':
+            ip = input("Entrez l'adresse IP de l'agent : ")
+            agent_id = get_agent_id_by_ip(session, ip)
+            if agent_id:
+                uninstall_agent(session, agent_id)
+            else:
+                print("Agent introuvable.")
+        elif choix == '6':
+            application_name = input("Entrer exactement le nom de l'application : ")
+            print(application_risk(session,application_name))
+        elif choix == '7':
+            print("Déconnexion...")
+            break
+        else:
+            print("Choix invalide.")
+
+def list_users(session):
+    print("[LOG] Récupération des utilisateurs...")
+    response = session.get(f"{baseurl}/web/api/v2.1/users")
+    if response.status_code == 200:
+        return json.dumps(response.json(), indent=4)
+    else:
+        return "Erreur lors de la récupération des utilisateurs."
+
+def get_user_details(session, user_id):
+    print(f"[LOG] Récupération des détails de l'utilisateur {user_id}...")
+    response = session.get(f"{baseurl}/web/api/v2.1/users/{user_id}")
+    if response.status_code == 200:
+        return json.dumps(response.json(), indent=4)
+    else:
+        return "Erreur lors de la récupération des détails de l'utilisateur."
+
+def list_agents(session):
+    print("[LOG] Récupération des agents...")
+    response = session.get(f"{baseurl}/web/api/v2.1/agents?limit=100")
+    if response.status_code == 200:
+        return json.dumps(response.json(), indent=4)
+    else:
+        return "Erreur lors de la récupération des agents."
+
+def get_agent_information(session, ip):
+    print(f"[LOG] Récupération des informations de l'agent avec l'IP {ip}...")
+    response = session.get(f"{baseurl}/web/api/v2.1/agents/iterator?query={ip}&limit=1")
+    if response.status_code == 200:
+        data = response.json()
+        if 'data' in data and data['data']:
+            agent = data['data'][0]
+            return json.dumps(agent, indent=4)
+        else:
+            return "Aucun agent trouvé avec cette IP."
+    else:
+        return "Erreur lors de la récupération des informations de l'agent."
+
+def get_agent_id_by_ip(session, ip):
+    print(f"[LOG] Recherche de l'ID de l'agent avec l'IP {ip}...")
+    response = session.get(f"{baseurl}/web/api/v2.1/agents/iterator?query={ip}&limit=1")
+    if response.status_code == 200:
+        data = response.json()
+        if 'data' in data and data['data']:
+            return data['data'][0]['id']
+    return None
+
+def uninstall_agent(session, agent_id):
+    print(f"[LOG] Désinstallation de l'agent {agent_id}...")
+    response = session.post(f"{baseurl}/web/api/v2.1/agents/uninstall", params={'id__in': agent_id})
+    if response.status_code == 200:
+        print("Agent désinstallé avec succès.")
+    else:
+        print("Échec de la désinstallation de l'agent.")
+
+	
+if __name__ == "__main__":
+    main()
