@@ -1,141 +1,132 @@
 import requests
 import json
 import sys
+from util import Utilities  # Import d'une classe utilitaire pour l'affichage des logs et des erreurs
+import getpass
 import pandas as pd
-# Base URL de SentinelOne
-baseurl = 'https://***.sentinelone.net'  # Remplacez par l'URL spécifique de votre entreprise
+from datetime import date  # Import pour la gestion des dates
 
-def main():
-    api_token = input("Entrez votre API Token : ")
+# Classe représentant une application pour récupérer des informations via SentinelOne
+class Application:
+    def __init__(self, baseurl, machine_name, session, response, application_name, application_vendor, application_version):
+        self.baseurl = baseurl  # URL de base de l'API SentinelOne
+        self.machine_name = machine_name  # Nom de la machine
+        self.session = session  # Session HTTP pour la communication avec l'API
+        self.response = response  # Stocke la réponse de l'API
+        # Demande à l'utilisateur de fournir les détails de l'application à rechercher
+        self.application_name = input("Entrer le nom de l'application, exemple (FortiClient) : ")
+        self.application_vendor = input("Entrer le nom de l'application Vendor, exemple (Fortinet Technologies Inc) : ")
+        self.application_version = input("Entrer la version de l'application, exemple (6.0.5.8) : ")
 
-    # Initialiser une session HTTP avec l'en-tête d'autorisation
-    session = requests.Session()
-    session.headers.update({'Authorization': f'APIToken {api_token}'})
+    # Fonction pour récupérer la version de l'application avec le nom d'ordinateur
+    def GetApplication_Version_With_ComputerName(self):
+        print("[LOG] Checking SentinelOne connection...")
+        try:
+            # Effectuer une requête GET pour récupérer les informations sur les applications installées
+            self.response = self.session.get(
+                f"{self.baseurl}/web/api/v2.1/application-management/risks/endpoints?applicationName={self.application_name}&applicationVendor={self.application_vendor}&applicationVersions={self.application_version}&limit=1000"
+            )
+            
+            if self.response.status_code == 200:
+                export_data = []
+                print(f"[OK] Les données ont été récupérées.")
+                data_list = self.response.json()["data"]  # Extraire les données JSON de la réponse
 
-    try:
-        # Tester la connexion avec l'API Token
-        if test_connection(session):
-            print("Connexion réussie avec l'API Token.")        
-            launch_interface(session)
-        else:
-            print("Échec de connexion : vérifiez votre API Token.")
-    except Exception as e:
-        print(f"Erreur : {e}")
-    finally:
-        session.close()
+                for data_dict in data_list:
+                    self.machine_name = data_dict["endpointName"]
+                    print("Nom de la machine : " + str(data_dict["endpointName"]))
+                    print("Version : " + str(data_dict["applicationVersion"]))
+                    print("osVersion : " + str(data_dict["osVersion"]))
+                    
+                    # Récupérer le dernier utilisateur connecté sur la machine
+                    data_GetUsername = self.GetUsername()[0]
+                    print("LastUserLogged : " + str(data_GetUsername['lastLoggedInUserName']))
+                    print()
+                    
+                    # Stocker les informations pour l'exportation
+                    export_data.append({
+                        "Nom de la machine": data_dict["endpointName"],
+                        "Version": data_dict["applicationVersion"],
+                        "OS Version": data_dict["osVersion"],
+                        "Last User Logged": data_GetUsername["lastLoggedInUserName"]
+                    })
+                       
+                today = date.today()
+                
+                # Création d'un DataFrame pandas pour stocker les données sous forme de tableau
+                df = pd.DataFrame(data=export_data)
 
-# création d'une fonction application
-
-def application_risk(session,application_name):
-    print("[LOG] Vérification de la connexion à SentinelOne...")
-    response = session.get(f"{baseurl}/web/api/v2.1/application-management/risks?application__contains={application_name}")
-    data = (dict(response.json())).values()
-    if response.status_code == 200:
-        # Création d'un DataFrame à partir du dictionnaire
-        df = pd.DataFrame(data)
-        # Sauvegarde au format Excel
-        df.to_excel("output.xlsx", index=False)
-        return "Données ont été exportés dans le fichier Excel : output.xlsx"
-    return "Erreur lors de la récupération des applications à risque des postes"
-
-def test_connection(session):
-    print("[LOG] Vérification de la connexion à SentinelOne...")
-    response = session.get(f"{baseurl}/web/api/v2.1/users")
-    return response.status_code == 200
-
-def launch_interface(session):
-    while True:
-        print("\nOptions :")
-        print("1: Lister tous les utilisateurs")
-        print("2: Obtenir les détails d'un utilisateur par ID")
-        print("3: Lister les agents")
-        print("4: Obtenir des informations sur un agent par IP")
-        print("5: Désinstaller SentinelOne d'un agent")
-        print("6: Entrer le nom de l'application obsolète : ")
-        print("7: Quitter")
-
-        choix = input("Choisissez une option : ")
-
-        if choix == '1':
-            print(list_users(session))
-        elif choix == '2':
-            user_id = input("Entrez l'ID de l'utilisateur : ")
-            print(get_user_details(session, user_id))
-        elif choix == '3':
-            print(list_agents(session))
-        elif choix == '4':
-            ip = input("Entrez l'adresse IP de l'agent : ")
-            print(get_agent_information(session, ip))
-        elif choix == '5':
-            ip = input("Entrez l'adresse IP de l'agent : ")
-            agent_id = get_agent_id_by_ip(session, ip)
-            if agent_id:
-                uninstall_agent(session, agent_id)
+                # Exporter les données dans un fichier Excel
+                df.to_excel(f"output_{today.isoformat()}.xlsx", index=False)
+                print("Données exportées")
+                return True
             else:
-                print("Agent introuvable.")
-        elif choix == '6':
-            application_name = input("Entrer exactement le nom de l'application : ")
-            print(application_risk(session,application_name))
-        elif choix == '7':
-            print("Déconnexion...")
-            break
+                print(f"[ERROR] Échec lors de la récupération des données : {self.response.status_code}")
+                return False
+        except Exception as e:
+            print(f"[EXCEPTION] Requête obtenue : {str(e)}")
+            return False
+
+    # Fonction pour récupérer le dernier utilisateur connecté sur la machine
+    def GetUsername(self):
+        self.response = session.get(
+            f"{self.baseurl}/web/api/v2.1/agents?computerName={self.machine_name}"
+        )
+        data_list = self.response.json()["data"]
+        return data_list
+
+
+# Fonctions utilitaires pour afficher des messages avec des codes de couleur
+def printSuccess(msg):
+    print(Utilities.OKGREEN + "[OK] " + msg + Utilities.ENDC)
+
+def printError(msg):
+    print(Utilities.FAIL + "[ERROR] " + msg + Utilities.ENDC)
+
+def printException(msg):
+    print(Utilities.FAIL + "[EXCEPTION] " + msg + Utilities.ENDC + str(sys.exc_info()[0]))
+
+def printLog(msg):
+    print(Utilities.OKGREEN + "[LOG] " + msg + Utilities.ENDC)
+
+# Fonction pour s'authentifier auprès de l'API SentinelOne avec un token API
+def login(session, APIToken):
+    printLog('Logging in...')
+    session.headers.update({'Authorization': 'APIToken ' + APIToken})
+    try:
+        if test_connection(session):
+            printSuccess("Successfully connected with API Token")
+            return True
         else:
-            print("Choix invalide.")
+            printError("Connection failed: Check your API Token")
+            return False
+    except Exception as e:
+        printException(f"Login error: {str(e)}")
+        return False
 
-def list_users(session):
-    print("[LOG] Récupération des utilisateurs...")
-    response = session.get(f"{baseurl}/web/api/v2.1/users")
-    if response.status_code == 200:
-        return json.dumps(response.json(), indent=4)
-    else:
-        return "Erreur lors de la récupération des utilisateurs."
+# Fonction pour tester la connexion avec l'API SentinelOne
+def test_connection(session):
+    try:
+        response = session.get(f"{baseurl}/web/api/v2.1/users")
+        return response.status_code == 200
+    except Exception as e:
+        printException(f"Connection test failed: {str(e)}")
+        return False
 
-def get_user_details(session, user_id):
-    print(f"[LOG] Récupération des détails de l'utilisateur {user_id}...")
-    response = session.get(f"{baseurl}/web/api/v2.1/users/{user_id}")
-    if response.status_code == 200:
-        return json.dumps(response.json(), indent=4)
-    else:
-        return "Erreur lors de la récupération des détails de l'utilisateur."
-
-def list_agents(session):
-    print("[LOG] Récupération des agents...")
-    response = session.get(f"{baseurl}/web/api/v2.1/agents?limit=100")
-    if response.status_code == 200:
-        return json.dumps(response.json(), indent=4)
-    else:
-        return "Erreur lors de la récupération des agents."
-
-def get_agent_information(session, ip):
-    print(f"[LOG] Récupération des informations de l'agent avec l'IP {ip}...")
-    response = session.get(f"{baseurl}/web/api/v2.1/agents/iterator?query={ip}&limit=1")
-    if response.status_code == 200:
-        data = response.json()
-        if 'data' in data and data['data']:
-            agent = data['data'][0]
-            return json.dumps(agent, indent=4)
-        else:
-            return "Aucun agent trouvé avec cette IP."
-    else:
-        return "Erreur lors de la récupération des informations de l'agent."
-
-def get_agent_id_by_ip(session, ip):
-    print(f"[LOG] Recherche de l'ID de l'agent avec l'IP {ip}...")
-    response = session.get(f"{baseurl}/web/api/v2.1/agents/iterator?query={ip}&limit=1")
-    if response.status_code == 200:
-        data = response.json()
-        if 'data' in data and data['data']:
-            return data['data'][0]['id']
-    return None
-
-def uninstall_agent(session, agent_id):
-    print(f"[LOG] Désinstallation de l'agent {agent_id}...")
-    response = session.post(f"{baseurl}/web/api/v2.1/agents/uninstall", params={'id__in': agent_id})
-    if response.status_code == 200:
-        print("Agent désinstallé avec succès.")
-    else:
-        print("Échec de la désinstallation de l'agent.")
-
-	
+# Point d'entrée principal du script
 if __name__ == "__main__":
-    main()
+    baseurl = 'https://***.sentinelone.net'  # URL de l'API SentinelOne (remplacée par des étoiles pour la confidentialité)
+    
+    try:
+        session = requests.Session()  # Création d'une session HTTP persistante
+        APIToken = input("APIToken: ")  # Demande du token API pour l'authentification
+        
+        if login(session, APIToken):  # Vérification de la connexion
+            # Création d'une instance de la classe Application
+            forticlient = Application(baseurl, None, session, None, None, None, None)
+            forticlient.GetApplication_Version_With_ComputerName()  # Lancement de la récupération des versions des applications
+        else:
+            printError("Failed to initialize connection")
+            
+    except Exception as e:
+        printException(f"Script execution failed: {str(e)}")
